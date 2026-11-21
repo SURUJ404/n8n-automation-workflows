@@ -1,0 +1,7 @@
+# no dependencies are used, but keep npm artifacts out if one appears
+node_modules/
+*.log
+.DS_Store
+
+# local planning document — intentionally not published
+PLAN.md

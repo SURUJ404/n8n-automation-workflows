@@ -1,0 +1,1297 @@
+{
+  "name": "Lead pipeline",
+  "nodes": [
+    {
+      "id": "bede5ff3-ad24-5a3f-b124-b9d010b80ed3",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        440
+      ],
+      "parameters": {
+        "formTitle": "Lead pipeline",
+        "formDescription": "Find local businesses, pull a real contact email from their site, and draft (or send) a short intro.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Business Type",
+              "placeholder": "e.g. Plumber",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "e.g. Rome, Italy",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Lead Number",
+              "fieldType": "number",
+              "placeholder": "max 100",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "What you offer",
+              "fieldType": "textarea",
+              "placeholder": "One or two sentences on what you sell and the result it gives",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email Style",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Professional"
+                  },
+                  {
+                    "option": "Friendly"
+                  },
+                  {
+                    "option": "Simple"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Mode",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Draft only"
+                  },
+                  {
+                    "option": "Send now"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Run pipeline"
+        }
+      },
+      "webhookId": "672317db-aaad-5a8d-9626-0c461cf52ab7"
+    },
+    {
+      "id": "55b47456-6573-532e-bfd6-1dbcd74104e9",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        440
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2afa45aa-aac5-5ee1-8bb3-d47d6dd955a9",
+              "name": "senderName",
+              "value": "REPLACE: Your Name",
+              "type": "string"
+            },
+            {
+              "id": "0074c8bd-7ef1-5c75-911a-0589675b5642",
+              "name": "senderCompany",
+              "value": "REPLACE: Your Company",
+              "type": "string"
+            },
+            {
+              "id": "2a9651ab-566a-5440-980f-e1256df63338",
+              "name": "calendarLink",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c29496ea-8ad6-5105-9c01-e4648f229628",
+              "name": "postalAddress",
+              "value": "REPLACE: your business mailing address",
+              "type": "string"
+            },
+            {
+              "id": "9bb86634-450e-5972-8475-1e69a24f6e3d",
+              "name": "model",
+              "value": "openai/gpt-4o-mini",
+              "type": "string"
+            },
+            {
+              "id": "83e61fcc-e6ce-5678-812e-206ec7d2bb32",
+              "name": "secondsBetweenLeads",
+              "value": 15,
+              "type": "number"
+            },
+            {
+              "id": "cc5d7c4b-23e3-5fb8-8668-33631f773e30",
+              "name": "maxSendsPerRun",
+              "value": 30,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5ce3de1d-a6f3-53fa-bac7-cfd2fd9d47c2",
+      "name": "Read lead log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        640,
+        440
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REPLACE_WITH_SPREADSHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Lead log"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "a2b9e1ad-e88a-5f54-9ff7-317832588206",
+      "name": "Google Places",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        440
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ searchStringsArray: [$('On form submission').first().json['Business Type']], locationQuery: $('On form submission').first().json['Location'], maxCrawledPlacesPerSearch: Math.min($('On form submission').first().json['Lead Number'] * 2, 200), language: 'en', skipClosedPlaces: true, scrapeContacts: false, scrapeDirectories: false, scrapePlaceDetailPage: false, maxImages: 0, includeWebResults: false }) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Apify (Authorization: Bearer <token>)"
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "6ee2f631-6c4b-54c4-9b1f-2e4c67acdfa5",
+      "name": "Select leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// n8n Code node: \"Select leads\" (Run Once for All Items)\n// Turns raw Google Places rows into a clean, de-duplicated list of leads.\n\nconst BLOCKED_HOSTS = [\n  'facebook.com', 'instagram.com', 'linkedin.com', 'twitter.com', 'x.com',\n  'youtube.com', 'tiktok.com', 'yelp.com', 'justdial.com', 'tripadvisor.com',\n  'linktr.ee', 'wa.me', 'google.com', 'goo.gl', 'maps.app.goo.gl',\n  // social / aggregator / directory profiles that are not the business's own site\n  'foursquare.com', 'yellowpages.com', 'thumbtack.com', 'angi.com', 'angieslist.com',\n  'bbb.org', 'trustpilot.com', 'nextdoor.com', 'bark.com', 'alignable.com',\n];\nconst MAX_LEADS = 100;\n\nfunction hostOf(raw) {\n  if (!raw || typeof raw !== 'string') return null;\n  try {\n    const u = new URL(/^https?:\\/\\//i.test(raw.trim()) ? raw.trim() : 'https://' + raw.trim());\n    return u.hostname.replace(/^www\\./, '').toLowerCase() || null;\n  } catch {\n    return null;\n  }\n}\n\nfunction isBlocked(host) {\n  return BLOCKED_HOSTS.some((b) => host === b || host.endsWith('.' + b));\n}\n\nfunction selectLeads(places, { limit, knownDomains = [], maxPerRun = MAX_LEADS }) {\n  const cap = Math.max(1, Math.min(Number(limit) || 10, MAX_LEADS, Number(maxPerRun) || MAX_LEADS));\n  const seen = new Set(knownDomains.map((d) => String(d).toLowerCase()));\n  const leads = [];\n  for (const p of places) {\n    if (leads.length >= cap) break;\n    if (!p || p.permanentlyClosed || p.temporarilyClosed) continue;\n    const host = hostOf(p.website);\n    if (!host || isBlocked(host) || seen.has(host)) continue;\n    seen.add(host);\n    leads.push({\n      name: String(p.title || host).trim(),\n      domain: host,\n      website: 'https://' + host,\n      category: p.categoryName || '',\n      address: p.address || '',\n      phone: p.phone || '',\n      rating: p.totalScore ?? '',\n      reviews: p.reviewsCount ?? '',\n    });\n  }\n  return leads;\n}\n\nif (typeof module !== 'undefined' && module.exports) {\n  module.exports = { selectLeads, hostOf, isBlocked, MAX_LEADS };\n}\nif (typeof $input !== 'undefined') {\n  const form = $('On form submission').first().json;\n  const places = $('Google Places').all().map((i) => i.json);\n  const knownDomains = $('Read lead log').all().map((i) => i.json.Domain).filter(Boolean);\n  const cfg = $('Config').first().json;\n  // In send mode, cap the batch so one run can't blast past the sender's daily limit.\n  const maxPerRun = form['Mode'] === 'Send now' ? cfg.maxSendsPerRun : MAX_LEADS;\n  return selectLeads(places, { limit: form['Lead Number'], knownDomains, maxPerRun }).map((json) => ({ json }));\n}\n"
+      }
+    },
+    {
+      "id": "877730a2-0a97-54da-a4d0-16b4e5b69c61",
+      "name": "Each lead",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1600,
+        440
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "4604c80c-cb31-58df-b7c1-cc2518ae4dc3",
+      "name": "Fetch homepage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        240
+      ],
+      "parameters": {
+        "url": "={{ $json.website }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c7ac8929-aa54-587f-882b-9dab9a0fe650",
+      "name": "Find contact page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Find contact page\" (Run Once for Each Item)\n// Looks through the homepage HTML for a contact-ish link on the same site.\n\nfunction findContactUrl(html, origin) {\n  const base = new URL(origin);\n  const anchor = /<a\\s[^>]*?href\\s*=\\s*[\"']([^\"'#]+)[\"'][^>]*>([\\s\\S]*?)<\\/a>/gi;\n  const wanted = /contact|get[\\s-]?in[\\s-]?touch|reach[\\s-]?us|enquir|inquir/i;\n  let m;\n  while ((m = anchor.exec(html || ''))) {\n    const [, href, inner] = m;\n    if (/^(mailto|tel|javascript):/i.test(href)) continue;\n    if (!wanted.test(href) && !wanted.test(inner.replace(/<[^>]+>/g, ' '))) continue;\n    try {\n      const u = new URL(href, base);\n      if (u.hostname.replace(/^www\\./, '') === base.hostname.replace(/^www\\./, '')) return u.href;\n    } catch { /* ignore malformed href */ }\n  }\n  return new URL('/contact', base).href; // blind guess; a 404 is harmless\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { findContactUrl };\nif (typeof $input !== 'undefined') {\n  const lead = $('Each lead').item.json;\n  const html = typeof $json.data === 'string' ? $json.data : '';\n  return { json: { contactUrl: findContactUrl(html, lead.website) } };\n}\n"
+      }
+    },
+    {
+      "id": "8da2a02a-0018-5a5d-adcd-c1f19dbdfbe6",
+      "name": "Fetch contact page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        240
+      ],
+      "parameters": {
+        "url": "={{ $json.contactUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "766e8fc9-8e15-529f-aefd-ab11f6005f01",
+      "name": "Pick email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Pick email\" (Run Once for Each Item)\n// Pulls every email-looking string out of the fetched pages and picks the best one.\n// Deterministic on purpose: an LLM that is only handed a URL cannot read the page.\n\nconst EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.[a-z]{2,}/gi;\nconst FILE_TLDS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif', 'css', 'js', 'woff', 'woff2', 'ico']);\nconst JUNK_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|abuse|webmaster|privacy|example|user|name|email|your-?email|test)$/i;\nconst JUNK_DOMAINS = new Set(['sentry.io', 'wixpress.com', 'example.com', 'domain.com', 'yourdomain.com', 'email.com', 'sentry-next.wixpress.com']);\nconst PREFERRED = ['info', 'contact', 'hello', 'sales', 'enquiries', 'enquiry', 'office', 'support', 'admin', 'team', 'hi'];\n\n// Cloudflare \"email protection\": data-cfemail=\"<hex>\", first byte is the XOR key.\nfunction decodeCf(hex) {\n  try {\n    const key = parseInt(hex.slice(0, 2), 16);\n    let out = '';\n    for (let i = 2; i < hex.length; i += 2) out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);\n    return out;\n  } catch {\n    return '';\n  }\n}\n\nfunction candidates(html) {\n  const text = String(html || '');\n  const found = new Map(); // email -> viaMailto\n  const add = (e, mailto) => {\n    const email = e.toLowerCase().replace(/^[^a-z0-9]+|[.]+$/g, '');\n    if (!email.includes('@')) return;\n    found.set(email, found.get(email) || mailto);\n  };\n  for (const m of text.matchAll(/mailto:([^\"'?\\s>]+)/gi)) {\n    let v = m[1];\n    try { v = decodeURIComponent(v); } catch { /* keep raw */ }\n    add(v, true);\n  }\n  for (const m of text.matchAll(/data-cfemail=[\"']([0-9a-f]+)[\"']/gi)) add(decodeCf(m[1]), true);\n  const plain = text\n    .replace(/\\s*[\\[(]\\s*at\\s*[\\])]\\s*/gi, '@')\n    .replace(/\\s*[\\[(]\\s*dot\\s*[\\])]\\s*/gi, '.');\n  for (const m of plain.matchAll(EMAIL_RE)) add(m[0], false);\n  return found;\n}\n\nfunction isUsable(email) {\n  const [local, domain] = email.split('@');\n  if (!local || !domain) return false;\n  if (JUNK_LOCAL.test(local) || JUNK_DOMAINS.has(domain)) return false;\n  if (FILE_TLDS.has(domain.split('.').pop())) return false;\n  if (/^\\d+x$/.test(domain.split('.')[0]) || local.length > 64) return false;\n  return true;\n}\n\nfunction score(email, viaMailto, siteDomain) {\n  const [local, domain] = email.split('@');\n  let s = 0;\n  if (domain === siteDomain || domain.endsWith('.' + siteDomain)) s += 10;\n  const i = PREFERRED.indexOf(local);\n  if (i >= 0) s += 8 - i * 0.5;\n  if (viaMailto) s += 2;\n  return s;\n}\n\nfunction pickEmail(pages, siteDomain) {\n  const all = new Map();\n  for (const html of pages) for (const [e, mailto] of candidates(html)) all.set(e, all.get(e) || mailto);\n  const ranked = [...all.entries()]\n    .filter(([e]) => isUsable(e))\n    .map(([e, mailto]) => ({ email: e, score: score(e, mailto, siteDomain) }))\n    .sort((a, b) => b.score - a.score || a.email.localeCompare(b.email));\n  // Only trust addresses on the company's own domain, or a mailbox it published via mailto.\n  const best = ranked.find((r) => r.score >= 10 || all.get(r.email));\n  return { email: best ? best.email : '', alternatives: ranked.slice(0, 5).map((r) => r.email) };\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { pickEmail, candidates, isUsable, decodeCf };\nif (typeof $input !== 'undefined') {\n  const lead = $('Each lead').item.json;\n  const home = $('Fetch homepage').item.json.data;\n  const contact = $json.data;\n  const { email, alternatives } = pickEmail([home, contact], lead.domain);\n  return { json: { ...lead, email, alternatives: alternatives.join(', ') } };\n}\n"
+      }
+    },
+    {
+      "id": "7a965ce2-ceec-513e-9e26-398b930e41ba",
+      "name": "Summarize site",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Summarize site\" (Run Once for Each Item)\n// Boils the homepage down to a few facts the drafting model can safely reference.\n\nconst decode = (s) => s\n  .replace(/&amp;/g, '&').replace(/&#0?39;|&apos;/g, \"'\").replace(/&quot;/g, '\"')\n  .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>');\nconst clean = (s) => decode(String(s || '').replace(/<[^>]+>/g, ' ')).replace(/\\s+/g, ' ').trim();\n\nfunction summarizeSite(html) {\n  const src = String(html || '').replace(/<(script|style|noscript|svg)[\\s\\S]*?<\\/\\1>/gi, ' ');\n  const title = clean((src.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i) || [])[1]);\n  const metaTag = src.match(/<meta[^>]+(?:name|property)=[\"'](?:og:)?description[\"'][^>]*>/i);\n  const description = metaTag ? clean((metaTag[0].match(/content=[\"']([^\"']*)[\"']/i) || [])[1]) : '';\n  const headings = [...src.matchAll(/<h[12][^>]*>([\\s\\S]*?)<\\/h[12]>/gi)]\n    .map((m) => clean(m[1])).filter((h) => h.length > 3 && h.length < 120).slice(0, 4);\n  const parts = [title && `Title: ${title.slice(0, 120)}`, description && `Description: ${description.slice(0, 240)}`,\n    headings.length && `Headings: ${headings.join(' | ')}`].filter(Boolean);\n  return parts.join('\\n');\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { summarizeSite };\nif (typeof $input !== 'undefined') {\n  return { json: { ...$json, siteSummary: summarizeSite($('Fetch homepage').item.json.data) } };\n}\n"
+      }
+    },
+    {
+      "id": "56aaab95-2a0c-5a98-adea-230ab8feecf3",
+      "name": "Has email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3520,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "35b5db8e-810a-5c64-8fb2-0b9657f67bde",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1bb1a15f-6579-5799-9f62-5c78058bf13c",
+      "name": "Check MX",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3840,
+        40
+      ],
+      "parameters": {
+        "url": "https://dns.google/resolve",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.email.split('@')[1] }}"
+            },
+            {
+              "name": "type",
+              "value": "MX"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "80eff347-dc14-51f7-b28f-d6b8d1c1d1c0",
+      "name": "Verify email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        40
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Verify email\" (Run Once for Each Item)\n// Reads the DNS-over-HTTPS MX answer for the email's domain. Fails closed only on a definite \"no mail server\".\n\nconst SYNTAX = /^[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.[a-z]{2,}$/i;\n\nfunction mxVerdict(email, dns) {\n  if (!SYNTAX.test(email || '')) return { ok: false, status: 'bad_email' };\n  if (!dns || dns.error || typeof dns.Status !== 'number') return { ok: true, status: 'mx_unchecked' }; // lookup failed: don't punish the lead\n  if (dns.Status === 3) return { ok: false, status: 'no_mx' }; // NXDOMAIN\n  const mx = (dns.Answer || []).filter((a) => a.type === 15 && !/^\\d+\\s+\\.?$/.test(String(a.data).trim()));\n  if (dns.Status === 0 && mx.length === 0) return { ok: false, status: 'no_mx' };\n  return { ok: true, status: 'mx_ok' };\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { mxVerdict };\nif (typeof $input !== 'undefined') {\n  const lead = $('Summarize site').item.json;\n  const v = mxVerdict(lead.email, $json);\n  return { json: { ...lead, emailOk: v.ok, status: v.ok ? '' : v.status, emailCheck: v.status } };\n}\n"
+      }
+    },
+    {
+      "id": "53099153-0d1c-5eca-870a-396507e44d33",
+      "name": "Email OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4480,
+        40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "4a637672-e1a7-5417-b4f0-d7c5f49604dc",
+              "leftValue": "={{ $json.emailOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "faef833d-d504-55af-9412-9d8676d69de3",
+      "name": "Row: no email",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3520,
+        640
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "850afa12-f25d-5006-b9c5-cee17b7317d2",
+              "name": "Date",
+              "value": "={{ $now.toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "66c8d083-3c6d-5ed8-aa5e-785938b0038f",
+              "name": "Company",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b6ab915d-41a1-5c36-a7b5-af6f5dc505e6",
+              "name": "Domain",
+              "value": "={{ $json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "9287d4dc-a587-57f7-bc27-f323ba4f6740",
+              "name": "Email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "717140dc-dba8-5713-9860-6943f362e3fe",
+              "name": "Phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "646bc05c-ec0e-54f6-b2ed-6997add1b74f",
+              "name": "Category",
+              "value": "={{ $json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "e2e5960c-a4ed-5143-9062-120bbb299336",
+              "name": "Rating",
+              "value": "={{ $json.rating }}",
+              "type": "string"
+            },
+            {
+              "id": "d7da3e71-1808-5121-9fc8-8e687c1db623",
+              "name": "Subject",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "58cebc41-370e-5c63-b09d-6f5c92933be7",
+              "name": "Status",
+              "value": "={{ $json.status || 'no_email' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "86147d3d-45d2-5088-85ca-58a4b83d2195",
+      "name": "Build prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4800,
+        40
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Build prompt\" (Run Once for Each Item)\n// Builds the OpenRouter chat request. Style and offer come from the form, so nothing is niche-specific.\n\nconst STYLES = {\n  Friendly: 'Warm and conversational. Contractions are fine. Sounds like a helpful peer, not a salesperson.',\n  Professional: 'Polished and concise. Formal but not stiff. No slang, no exclamation marks.',\n  Simple: 'Very plain. Three or four short sentences. No adjectives you could delete.',\n};\n\nfunction buildRequest({ lead, offer, style, senderName, senderCompany, model }) {\n  const system = [\n    'You write short cold outreach emails on behalf of a real sender.',\n    `Tone: ${STYLES[style] || STYLES.Professional}`,\n    'Rules:',\n    '- Body is at most 110 words, plain text, no markdown, no emojis.',\n    '- If \"Site says\" facts are given, you may reference ONE of them naturally (in your own words, not quoted); skip it if none is clearly useful.',\n    '- Use ONLY the facts provided about the recipient. Never claim to have followed, used, or studied their business, and never praise their \"impressive work\".',\n    '- Start with \"Hi <company name> team,\".',\n    '- State what the sender offers in one concrete sentence tied to the recipient\\'s category.',\n    '- End with one low-pressure question as the call to action.',\n    '- Do not include a signature, placeholders, or links; they are added separately.',\n    '- Subject under 60 characters, no clickbait, no all-caps.',\n    'Respond with JSON only: {\"subject\": string, \"body\": string}.',\n  ].join('\\n');\n  const facts = [\n    `Recipient company: ${lead.name}`,\n    lead.category && `Category: ${lead.category}`,\n    lead.address && `Location: ${lead.address}`,\n    lead.rating && `Public Google rating: ${lead.rating} (${lead.reviews || 'n/a'} reviews)`,\n    `Website: ${lead.website}`,\n    lead.siteSummary && `Site says:\\n${lead.siteSummary}`,\n  ].filter(Boolean).join('\\n');\n  const user = `${facts}\\n\\nSender: ${senderName}, ${senderCompany}\\nWhat the sender offers: ${offer}`;\n  return {\n    model,\n    temperature: 0.7,\n    max_tokens: 400,\n    response_format: { type: 'json_object' },\n    messages: [{ role: 'system', content: system }, { role: 'user', content: user }],\n  };\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { buildRequest, STYLES };\nif (typeof $input !== 'undefined') {\n  const form = $('On form submission').first().json;\n  const cfg = $('Config').first().json;\n  const lead = $json;\n  return {\n    json: {\n      lead,\n      request: buildRequest({\n        lead,\n        offer: form['What you offer'],\n        style: form['Email Style'],\n        senderName: cfg.senderName,\n        senderCompany: cfg.senderCompany,\n        model: cfg.model,\n      }),\n    },\n  };\n}\n"
+      }
+    },
+    {
+      "id": "784f9205-c00d-5c87-bfb3-6e88255fdef8",
+      "name": "Draft with OpenRouter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5120,
+        40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "OpenRouter (Authorization: Bearer <key>)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "1005c056-c7ec-5f93-8da5-a39c82d31fcd",
+      "name": "Parse draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5440,
+        40
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node: \"Parse draft\" (Run Once for Each Item)\n// Validates the model's JSON, falls back to a template if the call failed, then adds signature + opt-out footer.\n\n// Every opener starts the same way, so fallback and model drafts read alike.\nconst FALLBACK_OPENERS = {\n  Friendly: (c) => `Hi ${c} team,\\n\\nThanks for taking a minute to read this.`,\n  Professional: (c) => `Hi ${c} team,\\n\\nI am reaching out briefly.`,\n  Simple: (c) => `Hi ${c} team,`,\n};\n\nfunction extractJson(content) {\n  if (typeof content !== 'string') return null;\n  const cleaned = content.replace(/^```(?:json)?\\s*|\\s*```$/g, '').trim();\n  try {\n    const obj = JSON.parse(cleaned);\n    const subject = typeof obj.subject === 'string' ? obj.subject.trim() : '';\n    const body = typeof obj.body === 'string' ? obj.body.trim() : '';\n    if (subject && body && body.length < 1500) return { subject, body };\n  } catch { /* fall through */ }\n  return null;\n}\n\nfunction fallbackDraft({ lead, offer, style }) {\n  const open = (FALLBACK_OPENERS[style] || FALLBACK_OPENERS.Professional)(lead.name);\n  return {\n    subject: `Quick idea for ${lead.name}`.slice(0, 60),\n    body: `${open}\\n\\nWe help ${lead.category ? lead.category.toLowerCase() + ' businesses' : 'businesses like yours'} with the following: ${offer}\\n\\nWould it be useful if I sent over a short example?`,\n  };\n}\n\nfunction finalize(draft, { senderName, senderCompany, calendarLink, postalAddress }) {\n  const parts = [draft.body.trim(), ''];\n  if (calendarLink) parts.push(`If easier, grab a time here: ${calendarLink}`, '');\n  parts.push('Best,', senderName, senderCompany, '');\n  parts.push(\"If you'd rather not hear from me, reply 'no thanks' and I won't email you again.\");\n  if (postalAddress) parts.push(postalAddress);\n  return { subject: draft.subject, body: parts.join('\\n') };\n}\n\nfunction parseDraft({ content, lead, offer, style, cfg }) {\n  const parsed = extractJson(content);\n  const draft = parsed || fallbackDraft({ lead, offer, style });\n  return { ...finalize(draft, cfg), draftSource: parsed ? 'llm' : 'fallback' };\n}\n\nif (typeof module !== 'undefined' && module.exports) module.exports = { parseDraft, extractJson, fallbackDraft, finalize };\nif (typeof $input !== 'undefined') {\n  const form = $('On form submission').first().json;\n  const cfg = $('Config').first().json;\n  const { lead } = $('Build prompt').item.json;\n  const content = $json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content;\n  const out = parseDraft({ content, lead, offer: form['What you offer'], style: form['Email Style'], cfg });\n  return { json: { ...lead, ...out } };\n}\n"
+      }
+    },
+    {
+      "id": "12e4398b-e9b3-568c-afc3-601b3dde3d66",
+      "name": "Send now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5760,
+        40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "dd47cbec-9328-5e04-92ac-b01657225372",
+              "leftValue": "={{ $('On form submission').first().json['Mode'] }}",
+              "rightValue": "Send now",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "168d622f-f9ac-5f68-99ba-8730851d0bfc",
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        6080,
+        40
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "3d108e26-3b1c-572d-a3f4-d96b100fa5fa",
+      "name": "Create draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        6080,
+        240
+      ],
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "sendTo": "={{ $json.email }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "b445806e-8c6c-5e85-8f66-4148f7120662",
+      "name": "Row: sent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6400,
+        40
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "850afa12-f25d-5006-b9c5-cee17b7317d2",
+              "name": "Date",
+              "value": "={{ $now.toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "66c8d083-3c6d-5ed8-aa5e-785938b0038f",
+              "name": "Company",
+              "value": "={{ $('Parse draft').first().json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b6ab915d-41a1-5c36-a7b5-af6f5dc505e6",
+              "name": "Domain",
+              "value": "={{ $('Parse draft').first().json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "9287d4dc-a587-57f7-bc27-f323ba4f6740",
+              "name": "Email",
+              "value": "={{ $('Parse draft').first().json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "717140dc-dba8-5713-9860-6943f362e3fe",
+              "name": "Phone",
+              "value": "={{ $('Parse draft').first().json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "646bc05c-ec0e-54f6-b2ed-6997add1b74f",
+              "name": "Category",
+              "value": "={{ $('Parse draft').first().json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "e2e5960c-a4ed-5143-9062-120bbb299336",
+              "name": "Rating",
+              "value": "={{ $('Parse draft').first().json.rating }}",
+              "type": "string"
+            },
+            {
+              "id": "d7da3e71-1808-5121-9fc8-8e687c1db623",
+              "name": "Subject",
+              "value": "={{ $('Parse draft').first().json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "58cebc41-370e-5c63-b09d-6f5c92933be7",
+              "name": "Status",
+              "value": "sent",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8bcb3998-c16f-5578-be35-fa066a36f27a",
+      "name": "Row: drafted",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6400,
+        240
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "850afa12-f25d-5006-b9c5-cee17b7317d2",
+              "name": "Date",
+              "value": "={{ $now.toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "66c8d083-3c6d-5ed8-aa5e-785938b0038f",
+              "name": "Company",
+              "value": "={{ $('Parse draft').first().json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b6ab915d-41a1-5c36-a7b5-af6f5dc505e6",
+              "name": "Domain",
+              "value": "={{ $('Parse draft').first().json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "9287d4dc-a587-57f7-bc27-f323ba4f6740",
+              "name": "Email",
+              "value": "={{ $('Parse draft').first().json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "717140dc-dba8-5713-9860-6943f362e3fe",
+              "name": "Phone",
+              "value": "={{ $('Parse draft').first().json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "646bc05c-ec0e-54f6-b2ed-6997add1b74f",
+              "name": "Category",
+              "value": "={{ $('Parse draft').first().json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "e2e5960c-a4ed-5143-9062-120bbb299336",
+              "name": "Rating",
+              "value": "={{ $('Parse draft').first().json.rating }}",
+              "type": "string"
+            },
+            {
+              "id": "d7da3e71-1808-5121-9fc8-8e687c1db623",
+              "name": "Subject",
+              "value": "={{ $('Parse draft').first().json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "58cebc41-370e-5c63-b09d-6f5c92933be7",
+              "name": "Status",
+              "value": "drafted",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "01296a02-f7c4-51c8-b0cc-e14eebf1512a",
+      "name": "Log lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        6760,
+        440
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "REPLACE_WITH_SPREADSHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Lead log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.Date }}",
+            "Company": "={{ $json.Company }}",
+            "Domain": "={{ $json.Domain }}",
+            "Email": "={{ $json.Email }}",
+            "Phone": "={{ $json.Phone }}",
+            "Category": "={{ $json.Category }}",
+            "Rating": "={{ $json.Rating }}",
+            "Subject": "={{ $json.Subject }}",
+            "Status": "={{ $json.Status }}"
+          },
+          "matchingColumns": [
+            "Domain"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Domain",
+              "displayName": "Domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "b0ac5c74-0814-592f-835a-abf4f929261e",
+      "name": "Pause",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        7080,
+        640
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $('Config').first().json.secondsBetweenLeads }}",
+        "unit": "seconds"
+      },
+      "webhookId": "a6253d7c-45b8-5aab-9fd5-af10a1c564f2"
+    },
+    {
+      "id": "1ac3a353-3a53-5449-9742-bce3bab1ec0b",
+      "name": "Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 400,
+        "content": "## Lead pipeline — setup\n\n**1. Google Sheet.** Create a tab named `Lead log` with header row:\n`Date, Company, Domain, Email, Phone, Category, Rating, Subject, Status`\n\n**2. Import.** n8n → Workflows → Import from file → `workflow/lead-pipeline.json`.\n\n**3. Spreadsheet ID.** Set it in *Read lead log* and *Log lead* (placeholder `REPLACE_WITH_SPREADSHEET_ID`).\n\n**4. Credentials.** Google Sheets OAuth2 + Gmail OAuth2, plus two *Header Auth* credentials (`Authorization: Bearer <token>`) for *Google Places* (Apify) and *Draft with OpenRouter*. Tokens live only in credentials, never in this file.\n\n**5. Config node.** Replace sender name, company and postal address; optional calendar link; model, secondsBetweenLeads, maxSendsPerRun.\n\n**6. Run.** Open the form URL, start with *Mode = Draft only* (the default), review Gmail drafts, then switch to *Send now* when happy.\n\nDefault mode is *Draft only*. Every outcome (sent / drafted / no_email / no_mx) is logged by Domain, so no lead is contacted twice."
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Read lead log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read lead log": {
+      "main": [
+        [
+          {
+            "node": "Google Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Places": {
+      "main": [
+        [
+          {
+            "node": "Select leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select leads": {
+      "main": [
+        [
+          {
+            "node": "Each lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Each lead": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Fetch homepage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch homepage": {
+      "main": [
+        [
+          {
+            "node": "Find contact page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find contact page": {
+      "main": [
+        [
+          {
+            "node": "Fetch contact page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch contact page": {
+      "main": [
+        [
+          {
+            "node": "Pick email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick email": {
+      "main": [
+        [
+          {
+            "node": "Summarize site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize site": {
+      "main": [
+        [
+          {
+            "node": "Has email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has email?": {
+      "main": [
+        [
+          {
+            "node": "Check MX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Row: no email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check MX": {
+      "main": [
+        [
+          {
+            "node": "Verify email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify email": {
+      "main": [
+        [
+          {
+            "node": "Email OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email OK?": {
+      "main": [
+        [
+          {
+            "node": "Build prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Row: no email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build prompt": {
+      "main": [
+        [
+          {
+            "node": "Draft with OpenRouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft with OpenRouter": {
+      "main": [
+        [
+          {
+            "node": "Parse draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse draft": {
+      "main": [
+        [
+          {
+            "node": "Send now?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send now?": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Row: sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create draft": {
+      "main": [
+        [
+          {
+            "node": "Row: drafted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row: sent": {
+      "main": [
+        [
+          {
+            "node": "Log lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row: drafted": {
+      "main": [
+        [
+          {
+            "node": "Log lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row: no email": {
+      "main": [
+        [
+          {
+            "node": "Log lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log lead": {
+      "main": [
+        [
+          {
+            "node": "Pause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pause": {
+      "main": [
+        [
+          {
+            "node": "Each lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
